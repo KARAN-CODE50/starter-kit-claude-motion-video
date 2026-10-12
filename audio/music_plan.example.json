@@ -1,0 +1,17 @@
+{
+  "model_id": "music_v2_5",
+  "chunks": [
+    { "text": "[Intro]", "duration_ms": 8000,
+      "positive_styles": ["120 BPM", "4/4", "instrumental", "modern electronic", "filtered kick building", "tension"],
+      "negative_styles": ["vocals", "singing", "lo-fi"], "context_adherence": "high" },
+    { "text": "[Drop]", "duration_ms": 16000,
+      "positive_styles": ["120 BPM", "4/4", "instrumental", "punchy four-on-the-floor kick", "bouncy synth bass", "plucky lead", "full energy"],
+      "negative_styles": ["vocals", "singing", "lo-fi"], "context_adherence": "high" },
+    { "text": "[Breakdown]", "duration_ms": 8000,
+      "positive_styles": ["120 BPM", "instrumental", "drums out", "soft pads", "space for a voiceover"],
+      "negative_styles": ["vocals", "singing"], "context_adherence": "high" },
+    { "text": "[Final Drop]", "duration_ms": 16000,
+      "positive_styles": ["120 BPM", "4/4", "instrumental", "biggest energy", "ends on one hard hit and silence"],
+      "negative_styles": ["vocals", "singing", "fade out"], "context_adherence": "high" }
+  ]
+}

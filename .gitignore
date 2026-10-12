@@ -1,0 +1,23 @@
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*.json
+# Dependencies and local caches
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+# Generated media
+out/
+raw/
+frames/
+audio/*
+!audio/*.example.json
+# System files
+.DS_Store
+*.log

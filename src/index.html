@@ -1,0 +1,115 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>code film: demo</title>
+<style>
+  html, body { margin: 0; background: #141413; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+// The whole film is drawFrame(ctx, t): a pure function of time t (seconds).
+// No timers, no CSS animation, no state between frames. The renderer (src/render.mjs) asks for any t it likes.
+// This demo: 6 s at 120 BPM (one beat = 0.5 s). A prompt types itself, four words slam on the beat,
+// a wall of tiles assembles, collapses into the cursor, and the last frame equals the first, so it loops.
+
+const W = 1920, H = 1080, BEAT = 0.5, DURATION = 6;
+const C = { bg: '#141413', cream: '#F0EEE6', accent: '#D97757', dim: '#3D3C38' };
+const DISP = '"Inter Tight", system-ui, sans-serif';
+const MONO = 'ui-monospace, Menlo, Consolas, monospace';
+
+// ---- helpers: all pure ----
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, p) => a + (b - a) * p;
+const prog = (t, t0, t1) => clamp((t - t0) / (t1 - t0));
+const easeInOut = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+// closed-form spring step response: 0 at t<=0, settles to 1 (k = stiffness, c = damping)
+function spring(t, k = 520, c = 26) {
+  if (t <= 0) return 0;
+  const w0 = Math.sqrt(k), z = c / (2 * w0);
+  if (z >= 1) return 1 - Math.exp(-w0 * t) * (1 + w0 * t);
+  const wd = w0 * Math.sqrt(1 - z * z);
+  return 1 - Math.exp(-z * w0 * t) * (Math.cos(wd * t) + (z * w0 / wd) * Math.sin(wd * t));
+}
+// seeded random: same input, same number, every render
+const rnd = (i) => { let a = (i * 2654435761) >>> 0; a = Math.imul(a ^ (a >>> 15), a | 1); a ^= a + Math.imul(a ^ (a >>> 7), a | 61); return ((a ^ (a >>> 14)) >>> 0) / 4294967296; };
+
+function cursor(ctx, x, y, s = 1) { ctx.fillStyle = C.accent; ctx.fillRect(x - 13 * s, y - 30 * s, 26 * s, 60 * s); }
+function seed(ctx) { ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H); cursor(ctx, W / 2, H / 2); }
+
+// ---- the film ----
+const PROMPT = '> make a film out of code';
+const WORDS = ['EVERY', 'FRAME', 'IS', 'CODE'];
+
+function drawFrame(ctx, t) {
+  if (t < 1 / 60 || t > DURATION - 1.5 / 60) return seed(ctx);   // first frame == last frame: the loop seed
+  ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H);
+
+  if (t < 2) {                                   // 0-2 s: the prompt types itself (4 beats)
+    const n = Math.floor(prog(t, 0.25, 1.6) * PROMPT.length);
+    ctx.font = `700 64px ${MONO}`; ctx.textBaseline = 'middle';
+    const s = PROMPT.slice(0, n), x0 = W / 2 - ctx.measureText(PROMPT).width / 2;
+    ctx.fillStyle = C.cream; ctx.fillText(s, x0, H / 2);
+    if (n < PROMPT.length || Math.floor(t * 4) % 2 === 0) cursor(ctx, x0 + ctx.measureText(s).width + 24, H / 2, 0.9);
+    return;
+  }
+  if (t < 4) {                                   // 2-4 s: one word per beat, slammed in with a spring
+    const i = Math.min(3, Math.floor((t - 2) / BEAT)), t0 = 2 + i * BEAT;
+    const p = spring(t - t0, 900, 42), sc = lerp(1.8, 1, p);
+    const pulse = 1 + 0.03 * Math.exp(-(t - t0) * 10);          // a small kick on the beat
+    ctx.save(); ctx.translate(W / 2, H / 2); ctx.scale(sc * pulse, sc * pulse);
+    ctx.font = `900 300px ${DISP}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = i % 2 ? C.accent : C.cream; ctx.fillText(WORDS[i], 0, 0);
+    ctx.restore();
+    return;
+  }
+  // 4-6 s: a wall of tiles assembles from the centre out, then collapses into the cursor
+  const cols = 24, rows = 13, tw = W / cols, th = H / rows;
+  const out = easeInOut(prog(t, 5.2, 5.85));
+  ctx.save(); ctx.translate(W / 2, H / 2); ctx.scale(1 - out, 1 - out); ctx.translate(-W / 2, -H / 2);
+  for (let r = 0; r < rows; r++) for (let q = 0; q < cols; q++) {
+    const d = Math.hypot(q - cols / 2 + 0.5, r - rows / 2 + 0.5) / 14;
+    const v = spring(t - (4 + d * 0.9), 520, 21);
+    if (v <= 0.001) continue;
+    const w = (tw - 6) * v, h = (th - 6) * v;
+    ctx.fillStyle = rnd(r * cols + q) < 0.12 ? C.accent : rnd(r * cols + q + 999) < 0.5 ? C.dim : '#2A2A27';
+    ctx.fillRect((q + 0.5) * tw - w / 2, (r + 0.5) * th - h / 2, w, h);
+  }
+  ctx.restore();
+  if (t > 5.6) cursor(ctx, W / 2, H / 2, spring(t - 5.6));
+}
+
+// ---- harness: the renderer calls these ----
+const q = new URLSearchParams(location.search);
+const S = +(q.get('scale') || 1);
+const cv = document.getElementById('c');
+cv.width = Math.round(W * S); cv.height = Math.round(H * S);
+const ctx = cv.getContext('2d', { alpha: false, willReadFrequently: true });
+const wk = document.createElement('canvas'); wk.width = cv.width; wk.height = cv.height;
+const wctx = wk.getContext('2d', { alpha: false, willReadFrequently: true });
+function paint(c, t) { c.reset(); c.setTransform(S, 0, 0, S, 0, 0); drawFrame(c, t); }
+// n sub-frames per frame, averaged = real motion blur
+window.renderFrame = (t, n = 1, fps = 60) => {
+  if (n <= 1) { paint(ctx, t); return true; }
+  ctx.reset();
+  for (let k = 0; k < n; k++) {
+    paint(wctx, t + k / n / fps);
+    ctx.globalAlpha = 1 / (k + 1); ctx.drawImage(wk, 0, 0); ctx.globalAlpha = 1;
+  }
+  return true;
+};
+window.grab = (type = 'image/png', qual = 0.95) => cv.toDataURL(type, qual);
+window.FILM = { W, H, DURATION };
+window.ready = (async () => {
+  const f = new FontFace('Inter Tight', 'url(../assets/fonts/inter-tight-latin-900-normal.woff2)', { weight: '900' });
+  try { await f.load(); document.fonts.add(f); } catch (e) { console.warn('font missing, using fallback'); }
+  await document.fonts.ready;
+  window.renderFrame(0);
+  return true;
+})();
+</script>
+</body>
+</html>

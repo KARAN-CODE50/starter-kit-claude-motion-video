@@ -1,0 +1,6 @@
+[
+  { "id": "whoosh", "text": "very fast airy whoosh pass-by transition, clean, no tail", "seconds": 0.7 },
+  { "id": "impact", "text": "massive cinematic impact, deep sub boom with a sharp transient", "seconds": 2.0 },
+  { "id": "enter_key", "text": "single heavy mechanical keyboard enter key press, close mic", "seconds": 0.5 },
+  { "id": "riser", "text": "tension riser building for four seconds, ends abruptly at the peak", "seconds": 4.0 }
+]

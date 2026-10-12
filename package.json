@@ -1,0 +1,20 @@
+{
+  "name": "starter-kit-claude-motion-video",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A video where every frame is code: a page draws frame t, headless Chromium films it, ffmpeg encodes it.",
+  "scripts": {
+    "demo": "node src/render.mjs video --out out/demo.mp4",
+    "sheet": "node src/render.mjs sheet",
+    "final": "node src/render.mjs final --out out/film.mp4",
+    "check": "node --check src/render.mjs && python3 tools/repo_check.py",
+    "test": "node --test tests/*.test.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.56.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
